@@ -30,16 +30,15 @@ def addNoise(triangle_wave, rand_range):
 
     return noise_points
 
-def generateWaves(time, horizon, rand_range):
+def generateWaves(time, rand_range):
     amp = 2         # amplitude
     freq = 1        # frequency
 
-    # Generate triangle wave, points with noise and denoised wave
+    # Generate triangle wave, points with noise
     triangle_wave = amp * signal.sawtooth(freq * time, width=0.5)
     generated_noise_points = addNoise(triangle_wave, rand_range)
-    denoised_wave = denoising(generated_noise_points, horizon)
 
-    return triangle_wave, generated_noise_points, denoised_wave
+    return triangle_wave, generated_noise_points
 
 def MSE(traingle_wave, denoised_points, horizon):
     mse = 0
@@ -49,19 +48,20 @@ def MSE(traingle_wave, denoised_points, horizon):
 
     return mse / (len(traingle_wave) - horizon)
 
-def simulateHorizons(horizon_range, triangle_wave, denoised_wave):
+def simulateHorizons(horizon_range, triangle_wave, generated_noise_points):
     MSE_values = np.zeros([horizon_range])
 
     for horizon in range(1, horizon_range + 1): 
-        MSE_values[horizon - 1] = MSE(triangle_wave, denoised_wave, horizon)
-
-    print(min(MSE_values), np.argmin(MSE_values))
+        MSE_values[horizon - 1] = MSE(triangle_wave, denoising(generated_noise_points, horizon), horizon)
 
     # MSE values on plot
     plt.scatter(np.arange(0, horizon_range, 1), MSE_values, marker=".")
     # Highlight min value
     plt.plot(np.argmin(MSE_values), min(MSE_values), marker='.', color='r')
     plt.grid(); plt.xlabel("Horizon"); plt.ylabel("MSE")
+
+    print(np.argmin(MSE_values) + 1)
+    return np.argmin(MSE_values) + 1
 
 def createWavePlots(triangle_wave, generated_noise_points, denoised_wave, horizon, numb_points, time):
     plt.figure(figsize=(12, 7))
@@ -75,17 +75,17 @@ def createWavePlots(triangle_wave, generated_noise_points, denoised_wave, horizo
     plt.grid(); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
 
 def main():
-    horizon = 20
-    horizon_simulate = 75
-    plot_range = 100
+    # horizon = 3
+    horizon_simulate = 20
+    plot_range = 50
     numb_points = 2000
     rand_range = 1
 
     time = np.linspace(0, plot_range, num=numb_points)
-    triangle_wave, generated_noise_points, denoised_wave = generateWaves(time, horizon, rand_range)
+    triangle_wave, generated_noise_points = generateWaves(time, rand_range)
 
-    simulateHorizons(horizon_simulate, triangle_wave, denoised_wave)
-    createWavePlots(triangle_wave, generated_noise_points, denoised_wave, horizon, numb_points, time)
+    best_horizon = simulateHorizons(horizon_simulate, triangle_wave, generated_noise_points)
+    createWavePlots(triangle_wave, generated_noise_points, denoising(generated_noise_points, best_horizon), best_horizon, numb_points, time)
 
     plt.show()
 
