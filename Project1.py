@@ -12,10 +12,7 @@ def denoising(points):
         sum = 0
 
         for point in range(horizon):
-             if horizon + segment > len(points): 
-                denoised[segment] = denoised[segment - horizon]
-                break
-             
+             if horizon + segment > len(points): break
              sum += points[segment + point]
         
         denoised[segment] = sum / horizon
@@ -23,7 +20,7 @@ def denoising(points):
     return denoised
 
 def addNoise(points): 
-    for i in range(numb_points):
+    for i in range(len(points)):
         points[i] += np.random.uniform(0, 1) - 0.5
 
     return points
@@ -38,10 +35,10 @@ def plots(freq, amp):
     # Generate triangle wave 
     generator = amp * signal.sawtooth(freq * time, width=0.5)
 
-    # Create plots 
-    plt.plot(time, generator, label="Function without noise", color="r") 
-    plt.plot(time, addNoise(generator), ".", markersize=5, label="Function with noise")
-    plt.plot(time, denoising(generator), label="Denoised function")
+    # Create plots with scope lowered by the horizon
+    plt.plot(time[:numb_points - horizon], generator[:numb_points - horizon], label="Function without noise", color="r") 
+    plt.plot(time[:numb_points - horizon], addNoise(generator)[:numb_points - horizon], ".", markersize=5, label="Function with noise")
+    plt.plot(time[:numb_points - horizon], denoising(generator)[:numb_points - horizon], label="Denoised function")
 
     # Plot properties
     plt.grid(); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16)); plt.show()
