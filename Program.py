@@ -2,32 +2,52 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 
-numb_points = 300                     # number of points that creat plot
-freq = 1                              # frequency
-amp = 1                              # amplitude
+numb_points = 100                     # number of points that creat plot
+horizon = 5                           # 
 
-time = np.linspace(0, 10, num=numb_points)
+def denoising(points):
+    denoised = np.empty([numb_points])
 
-def plots():
+    for segment in range(len(points)):
+        sum = 0
+
+        for point in range(horizon):
+             if horizon + segment > len(points): 
+                denoised[segment] = denoised[segment - horizon]
+                break
+             
+             sum += points[segment + point]
+        
+        denoised[segment] = sum / horizon
+        
+    return denoised
+
+def addNoise(points): 
+    for i in range(numb_points):
+        points[i] += np.random.uniform(0, 1) - 0.5
+
+    return points
+
+# frequency, amplitude
+def plots(freq, amp):
     # Size of the window
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 7))
+
+    time = np.linspace(0, 10, num=numb_points)
 
     # Generate triangle wave 
     generator = amp * signal.sawtooth(freq * time, width=0.5)
 
-    # Add noise 
-    for i in range(numb_points):
-        generator[i] += np.random.uniform(0, 1) - 0.5
-
-    # Add triangle functions to the plot
-    plt.plot(time, generator, ".", markersize=5, label="Function with noise")
-    # plt.plot(time, amp * signal.sawtooth(freq * time, width=0.5), label="Function without noise", color="r") 
+    # Create plots 
+    plt.plot(time, generator, label="Function without noise", color="r") 
+    plt.plot(time, addNoise(generator), ".", markersize=5, label="Function with noise")
+    plt.plot(time, denoising(generator), label="Denoised function")
 
     # Plot properties
-    plt.grid(); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.12)); plt.show()
+    plt.grid(); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16)); plt.show()
 
 def main():
-    plots()
+    plots(freq=1, amp=2)
 
 if __name__ == "__main__":
     main()
