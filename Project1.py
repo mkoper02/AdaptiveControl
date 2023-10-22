@@ -9,14 +9,14 @@ def denoising(noise_points, horizon):
         sum = 0
 
         # Use values "from the future"
-        for point in range(horizon):
-            if horizon + segment > len(noise_points): break
-            sum += noise_points[segment + point]
+        # for point in range(horizon):
+        #     if horizon + segment > len(noise_points): break
+        #     sum += noise_points[segment + point]
         
         # Use values "from the past"
-        # for point in range(horizon):
-        #     if point + segment < horizon: break
-        #     sum += points[segment - point]
+        for point in range(horizon):
+            if segment < horizon - 1: break
+            sum += noise_points[segment - point]
         
         denoised[segment] = sum / horizon
         
@@ -31,11 +31,11 @@ def addNoise(triangle_wave, rand_range):
     return noise_points
 
 def generateWaves(time, rand_range):
-    amp = 2         # amplitude
-    freq = 1        # frequency
+    amp = 1         # amplitude
+    freq = 0.2        # frequency
 
     # Generate triangle wave, points with noise
-    triangle_wave = amp * signal.sawtooth(freq * time, width=0.5)
+    triangle_wave = amp * signal.sawtooth(np.pi * freq * time, width=0.5)
     generated_noise_points = addNoise(triangle_wave, rand_range)
 
     return triangle_wave, generated_noise_points
@@ -69,23 +69,35 @@ def createWavePlots(triangle_wave, generated_noise_points, denoised_wave, horizo
     # Create plots with scope lowered by the horizon
     plt.plot(time, triangle_wave, label="Function without noise", color="r") 
     plt.plot(time, generated_noise_points, ".", markersize=5, label="Points with noise")
-    plt.plot(time[:numb_points - horizon], denoised_wave[:numb_points - horizon], "*-", markersize=5,label="Denoised function")
+    plt.plot(time[horizon - 1:], denoised_wave[horizon - 1:], ".-", markersize=5, label="Denoised function")
 
     # Plot properties
     plt.grid(); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
 
-def main():
-    # horizon = 3
-    horizon_simulate = 20
-    plot_range = 50
-    numb_points = 2000
-    rand_range = 1
-
+# MSE dependence on horizons
+def ex1(plot_range, horizon_simulate, numb_points):
     time = np.linspace(0, plot_range, num=numb_points)
-    triangle_wave, generated_noise_points = generateWaves(time, rand_range)
+    triangle_wave, generated_noise_points = generateWaves(time, rand_range=1)
 
     best_horizon = simulateHorizons(horizon_simulate, triangle_wave, generated_noise_points)
     createWavePlots(triangle_wave, generated_noise_points, denoising(generated_noise_points, best_horizon), best_horizon, numb_points, time)
+
+# MSE dependence on interference variance
+# def ex2():
+
+
+# Optimal horizon dependence on interference variance
+# def ex3():
+
+
+def main():
+    # horizon = 3
+    plot_range = 50
+    rand_range = 1
+    horizon_simulate = 50
+    numb_points = 5000
+
+    ex1(plot_range, horizon_simulate, numb_points)
 
     plt.show()
 
