@@ -19,16 +19,16 @@ def denoising(noise_points, horizon):
 # Generate traingle wave
 def generateTriangleWave(time):
     amp = 1           # amplitude
-    freq = 0.2        # frequency
+    freq = 0.5        # frequency
 
-    return amp * signal.sawtooth(np.pi * freq * time, width=0.5)
+    return amp * signal.sawtooth(freq * time, width=0.5)
 
 # Generate wave with noise
-def generateNoiseWave(base_wave, rand_range): 
+def generateNoiseWave(base_wave, interferances_range): 
     noise_wave = np.copy(base_wave)
 
     for i in range(len(base_wave)):
-        noise_wave[i] += np.random.uniform(-rand_range / 2, rand_range / 2)
+        noise_wave[i] += np.random.uniform(-interferances_range / 2, interferances_range / 2)
 
     return noise_wave
 
@@ -40,7 +40,7 @@ def MSE(traingle_wave, denoised_points, horizon):
 
     return mse / (len(traingle_wave) - horizon)
 
-def simulateHorizons(horizon_range, triangle_wave, generated_noise_points):
+def simulateHorizons(triangle_wave, generated_noise_points, horizon_range):
     MSE_values = np.zeros([horizon_range])
 
     for horizon in range(1, horizon_range + 1): 
@@ -48,16 +48,12 @@ def simulateHorizons(horizon_range, triangle_wave, generated_noise_points):
 
     return MSE_values
 
-def allWavesPlot(triangle_wave, generated_noise_points, denoised_wave, horizon, time):
-    plt.figure(figsize=(12, 7))
+def allWavesPlot(time, horizon):
+    triangle_wave = generateTriangleWave(time)
+    noise_wave = generateNoiseWave(triangle_wave, interferances_range=1)
 
-    # Create plots with scope lowered by the horizon
-    plt.plot(time, triangle_wave, label="Function without noise", color="r") 
-    plt.plot(time, generated_noise_points, ".", markersize=5, label="Points with noise")
-    plt.plot(time[horizon - 1:], denoised_wave[horizon - 1:], ".-", markersize=5, label="Denoised function")
-
-    # Plot properties
-    plt.grid(); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
+    noiseTrianglePlot(triangle_wave, noise_wave, time)
+    noiseDenoisedPlot(denoising(noise_wave, horizon), noise_wave, time, horizon)
 
 # Create plot with triangle wave and generated noise points
 def noiseTrianglePlot(base_wave, noise_points, time):
@@ -69,7 +65,7 @@ def noiseTrianglePlot(base_wave, noise_points, time):
     plt.plot(time, noise_points, ".", markersize=5, label="Points with noise")
 
     # Plot properties
-    plt.grid(); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
+    plt.grid(True); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
 
 def noiseDenoisedPlot(denoised_wave, noise_points, time, horizon):
     # Plot size
@@ -80,44 +76,66 @@ def noiseDenoisedPlot(denoised_wave, noise_points, time, horizon):
     plt.plot(time[horizon - 1:], denoised_wave[horizon - 1:], ".-", markersize=5, label="Denoised function")
 
     # Plot properties
-    plt.grid(); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
+    plt.grid(True); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
 
 # MSE dependence on horizons
-def ex1(time, horizon_max_range):
+def ex1(time, horizon_range):
     triangle_wave = generateTriangleWave(time)
-    noise_wave = generateNoiseWave(triangle_wave, rand_range=1)
+    noise_wave = generateNoiseWave(triangle_wave, interferances_range=1)
 
-    calculated_harizons_mse = simulateHorizons(horizon_max_range, triangle_wave, noise_wave)
+    calculated_harizons_mse = simulateHorizons(triangle_wave, noise_wave, horizon_range)
+    best_horizon = np.argmin(calculated_harizons_mse)
 
-    # MSE to horizon values on plot
-    plt.scatter(np.arange(0, horizon_max_range, 1), calculated_harizons_mse, marker=".")
-    # Highlight min value
-    plt.plot(np.argmin(calculated_harizons_mse), min(calculated_harizons_mse), marker='.', color='r')
-    plt.grid(); plt.xlabel("Horizon"); plt.ylabel("MSE")
-
-    noiseTrianglePlot(triangle_wave, noise_wave, time)
-    noiseDenoisedPlot(denoising(noise_wave, np.argmin(calculated_harizons_mse) + 1), noise_wave, time, np.argmin(calculated_harizons_mse) + 1)
+    # MSE to horizon values plot and highlight min value
+    plt.figure(figsize=(10, 6))
+    plt.plot(np.arange(0, horizon_range, 1), calculated_harizons_mse, marker='.', markersize=8, linestyle=' ')
+    plt.plot(best_horizon, min(calculated_harizons_mse), marker='.', color='r', markersize=8)
+    plt.grid(True); plt.xlabel("Horizon"); plt.ylabel("MSE")
 
 # MSE dependence on interference variance
-# def ex2():
+def ex2(time, horizon):
+    triangle_wave = generateTriangleWave(time)
 
+    interferances = np.arange(0, 10, 0.5)
+    MSE_values = np.zeros([interferances.size])
+
+    for interferance in interferances:
+        noise_wave = generateNoiseWave(triangle_wave, interferance)
+        MSE_values[int(interferance * 2)] = MSE(triangle_wave, denoising(noise_wave, horizon), horizon)
+
+    # MSE to interference variance plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(interferances ** 2 / 3, MSE_values, marker='.', markersize=8, linestyle=' ')
+    plt.grid(True); plt.xlabel("Variance"); plt.ylabel("MSE")
 
 # Optimal horizon dependence on interference variance
-# def ex3():
+def ex3(time, horizon_range):
+    triangle_wave = generateTriangleWave(time)
 
+    interferances = np.arange(0, 10, 0.5)
+    optimal_horizons = np.zeros([interferances.size])
+
+    for interferance in interferances:
+        noise_wave = generateNoiseWave(triangle_wave, interferance)
+        optimal_horizons[int(interferance * 2)] = np.argmin(simulateHorizons(triangle_wave, noise_wave, horizon_range)) + 1
+
+    # Optimal horizont to interference variance plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(interferances ** 2 / 3, optimal_horizons, marker='.', markersize=8, linestyle=' ')
+    plt.grid(True); plt.xlabel("Variance"); plt.ylabel("Optimal horizons")
 
 def main():
-    # horizon = 3
     plot_range = 100
-    rand_range = 1
-    horizon_max = 50
-    numb_points = 5000
+    horizon_range = 50
+    numb_points = 1500
 
     time = np.linspace(0, plot_range, num=numb_points)
 
-    ex1(time, horizon_max)
-    # ex2()
-    # ex3()
+    ex1(time, horizon_range)
+    ex2(time, horizon=8)
+    ex3(time, horizon_range)
+
+    allWavesPlot(time, horizon=8)
 
     plt.show()
 
