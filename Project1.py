@@ -88,20 +88,22 @@ def ex1(time, horizon_range):
 
     # MSE to horizon values plot and highlight min value
     plt.figure(figsize=(10, 6))
-    plt.plot(np.arange(0, horizon_range, 1), calculated_harizons_mse, marker='.', markersize=8, linestyle=' ')
-    plt.plot(best_horizon, min(calculated_harizons_mse), marker='.', color='r', markersize=8)
+    plt.plot(np.arange(1, horizon_range + 1, 1), calculated_harizons_mse, marker='.', markersize=8, linestyle=' ')
+    plt.plot(best_horizon + 1, min(calculated_harizons_mse), marker='.', color='r', markersize=8)
     plt.grid(True); plt.xlabel("Horizon"); plt.ylabel("MSE")
 
 # MSE dependence on interference variance
 def ex2(time, horizon):
     triangle_wave = generateTriangleWave(time)
 
-    interferances = np.arange(0, 10, 0.5)
+    interferances = np.arange(0, 10, 0.25)
     MSE_values = np.zeros([interferances.size])
+    i = 0
 
     for interferance in interferances:
         noise_wave = generateNoiseWave(triangle_wave, interferance)
-        MSE_values[int(interferance * 2)] = MSE(triangle_wave, denoising(noise_wave, horizon), horizon)
+        MSE_values[i] = MSE(triangle_wave, denoising(noise_wave, horizon), horizon)
+        i += 1
 
     # MSE to interference variance plot
     plt.figure(figsize=(10, 6))
@@ -112,12 +114,14 @@ def ex2(time, horizon):
 def ex3(time, horizon_range):
     triangle_wave = generateTriangleWave(time)
 
-    interferances = np.arange(0, 10, 0.5)
+    interferances = np.arange(0, 10, 0.25)
     optimal_horizons = np.zeros([interferances.size])
+    i = 0
 
     for interferance in interferances:
         noise_wave = generateNoiseWave(triangle_wave, interferance)
-        optimal_horizons[int(interferance * 2)] = np.argmin(simulateHorizons(triangle_wave, noise_wave, horizon_range)) + 1
+        optimal_horizons[i] = np.argmin(simulateHorizons(triangle_wave, noise_wave, horizon_range)) + 1
+        i += 1
 
     # Optimal horizont to interference variance plot
     plt.figure(figsize=(10, 6))
@@ -127,7 +131,7 @@ def ex3(time, horizon_range):
 def main():
     plot_range = 100
     horizon_range = 50
-    numb_points = 1500
+    numb_points = 2500
 
     time = np.linspace(0, plot_range, num=numb_points)
 
