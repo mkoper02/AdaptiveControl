@@ -54,6 +54,7 @@ def allWavesPlot(time, horizon):
 
     noiseTrianglePlot(triangle_wave, noise_wave, time)
     noiseDenoisedPlot(denoising(noise_wave, horizon), noise_wave, time, horizon)
+    denoisedTrianglePlot(triangle_wave, denoising(noise_wave, horizon), time, horizon)
 
 # Create plot with triangle wave and generated noise points
 def noiseTrianglePlot(base_wave, noise_points, time):
@@ -67,12 +68,24 @@ def noiseTrianglePlot(base_wave, noise_points, time):
     # Plot properties
     plt.grid(True); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
 
+# Create plot with denoised wave and generated noise points
 def noiseDenoisedPlot(denoised_wave, noise_points, time, horizon):
     # Plot size
     plt.figure(figsize=(12, 6))
     
     # Create plot with scope lowered by the horizon
     plt.plot(time, noise_points, ".", markersize=5, label="Points with noise")
+    plt.plot(time[horizon - 1:], denoised_wave[horizon - 1:], ".-", markersize=5, label="Denoised function")
+
+    # Plot properties
+    plt.grid(True); plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.16))
+
+# Create plot with triangle wave and denoised wave
+def denoisedTrianglePlot(triangle_wave, denoised_wave, time, horizon):
+    plt.figure(figsize=(12, 6))
+
+    # Create plot with scope lowered by the horizon
+    plt.plot(time, triangle_wave, ".", markersize=5, label="Function without noise")
     plt.plot(time[horizon - 1:], denoised_wave[horizon - 1:], ".-", markersize=5, label="Denoised function")
 
     # Plot properties
