@@ -1,22 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Generate traingle wave
-def generateInput(time):
-    input_data = np.zeros(len(time))
-
-    for i in range(len(time)):
-        input_data[i] = np.random.normal(0, 1)
-
-    return input_data
-
-# Generate interferance array
-def generateInterferances(size, interferance_range):
-    interferance = np.zeros(size)
-    for i in range(size):
-        interferance[i] = np.random.uniform(-interferance_range / 2, interferance_range / 2)
-
-    return interferance
+# Generate random samples from a normaln distribution
+def generateInput(size):
+    return np.random.normal(0, 0.5, size)
 
 # Output basen on set parameters and noise
 def calculateOutput(input_k, input_k1, input_k2, interferance):
@@ -25,42 +12,79 @@ def calculateOutput(input_k, input_k1, input_k2, interferance):
     return input_k * b0_asterisk + input_k1 * b1_asterisk + input_k2 * b2_asterisk + interferance
 
 # Generate data (input, output) based on set parameters and noise
-def dataSimulation(base_funtion):
-    simulated_data = np.zeros((len(base_funtion), 2))
-    interferance_arr = generateInterferances(len(base_funtion), interferance_range=2)
+def dataSimulation(input):
+    simulated_data = np.zeros((len(input), 2))
+    interferance_range = 2
 
-    for point in range(len(base_funtion)):
+    for point in range(len(input)):
         if point < 2:
-            simulated_data[point] = [base_funtion[point], 0]
+            simulated_data[point] = [input[point], 0]
             continue
 
-        simulated_data[point] = [base_funtion[point], calculateOutput(base_funtion[point], base_funtion[point - 1], base_funtion[point - 2], interferance_arr[point])]
+        simulated_data[point] = [input[point], calculateOutput(input[point], input[point - 1], input[point - 2], np.random.uniform(-interferance_range / 2, interferance_range / 2))]
 
     return simulated_data
 
-# access data in column from 2d array
-# input_data = np.zeros(len(simulated_data))
-# output_data = np.zeros(len(simulated_data))
-# input_data = simulated_data[:, 0]
-# output_data = simulated_data[:, 1]
+def createXnMatrix(input_data):
+    row_size = 3
+
+    x_n = np.zeros((len(input_data) - 2, row_size))  
+
+    for row in range(len(x_n)):
+        for i in range(row_size): x_n[row][i] = input_data[row + i]
+
+    return x_n
+
+def calculateAn(past_an, Pn, temp_xn, yn):
+    xn = np.array([temp_xn])
+
+    return past_an[:, 0] + (np.matmul(Pn, xn[0]) * (yn - (np.matmul(xn.T[:, 0],  past_an[:, 0]))))
+
+def calculatePn(past_Pn, temp_xn, _lambda):
+    xn = np.array([temp_xn])
+
+    # print(np.matmul(past_Pn, xn[0]), xn.T, "\n")
+    # print(np.matmul(np.matmul(past_Pn, xn[0]), xn.T) * past_Pn)
+
+    # return past_Pn - (((np.matmul(np.matmul(past_Pn, xn[0]), xn.T) * past_Pn) / (_lambda + np.matmul(np.matmul(xn.T[:, 0], past_Pn), xn[0]))))
+    return (1 / _lambda) * (past_Pn - (((np.matmul(np.matmul(past_Pn, xn[0]), xn.T) * past_Pn) / (_lambda + np.matmul(np.matmul(xn.T[:, 0], past_Pn), xn[0])))))
 
 def ex1(time):
-    input_function = generateInput(time)
+    simulated_data = dataSimulation(generateInput(len(time)))
 
-    plt.plot(time[2:], dataSimulation(input_function)[2:], ".", markersize=3)
-    plt.grid(True); plt.show()
+    Xn = createXnMatrix(simulated_data[:, 0]).T
+    Yn = simulated_data[2:, 1]
+    an = np.array([np.zeros(3)]).T
+    Pn = np.identity(3)
+
+    an_arr = np.empty((Xn.shape[1], 3))
+
+    # calculateAn(an, Pn, Xn[:, 2], Yn[2])
+
+    for point in range(Xn.shape[1]):
+    # for point in range(4):
+        Pn = calculatePn(Pn, Xn[:, point], _lambda=1)
+        an = calculateAn(an, Pn, Xn[:, point], Yn[point])
+
+        # print(an)
+        an_arr[point] = an
+
+        an = np.array([an]).T
+
+    # print(Pn)
+    print(an)
+
+    # plt.plot(time[2:], simulated_data[2:, 0])
+    plt.plot(time[2:], an_arr)
+    plt.grid(); plt.show()
 
 def main():
-    plot_range = 10
-    numb_points = 100
+    plot_range = 250
+    numb_points = 10000
 
     time = np.linspace(0, plot_range, num=numb_points)
 
-    # ex1(time)
-
-    print(generateInput(time))
-    plt.plot(time, generateInput(time))
-    plt.show()
+    ex1(time)
 
 if __name__ == "__main__":
     main()
