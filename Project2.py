@@ -1,11 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import signal
 
-# Output based on set parameters and noise
-def calculateOutput(input_k, input_k1, input_k2, interferance):
-    bs = [1, 1, 1]
 
-    return input_k * bs[0] + input_k1 * bs[1] + input_k2 * bs[2] + interferance
+# Generate traingle wave
+def generateTriangleWave(time):
+    amp = 0.1           # amplitude
+    freq = 0.08         # frequency
+
+    return (amp * signal.sawtooth(freq * time, width=0.5)) + 1
 
 
 # Generate random samples from a normal distribution and return as an array 
@@ -20,13 +23,31 @@ def generateInput(size):
     return x_n
 
 
-# Generate output based on set parameters and noise
-def generateOutput(input):
+# Output based on set parameters and noise
+def calculateOutput(input_k, input_k1, input_k2, parameters, interferance):
+    return input_k * parameters[0] + input_k1 * parameters[1] + input_k2 * parameters[2] + interferance
+
+
+# Generate output based on set parameters and noise (static system)
+def generateOutputStatic(input, parameters):
     output = np.zeros((len(input), 1))
     interferance_range = 1
 
     for point in range(len(input)):
-        output[point] = calculateOutput(input[point][0], input[point][1], input[point][2], np.random.uniform(-interferance_range / 2, interferance_range / 2))
+        output[point] = calculateOutput(input[point][0], input[point][1], input[point][2], parameters, np.random.uniform(-interferance_range / 2, interferance_range / 2))
+
+    return output
+
+
+# Generate output based on set parameters and noise (dynamic system)
+def generateOutputDynamic(input, triangle_wave):
+    output = np.zeros((len(input), 1))
+    interferance_range = 1
+
+    for point in range(len(input)):
+        parameters = [1, triangle_wave[point], 1]
+
+        output[point] = calculateOutput(input[point][0], input[point][1], input[point][2], parameters, np.random.uniform(-interferance_range / 2, interferance_range / 2))
 
     return output
 
@@ -56,30 +77,62 @@ def main():
 
     time = np.linspace(0, plot_range, num=numb_points)
     Xn = generateInput(len(time))
-    Yn = generateOutput(Xn)    
+    Yn1 = generateOutputStatic(Xn, [1, 1, 1])    
 
-    bs1 = wrmnk(Xn, Yn, _lambda=1)
+    # Input vs output
+    # plt.figure(figsize=(14, 8))
+    # plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.06)
+    # plt.plot(time[:250], [i[0] for i in Xn][:250])
+    # plt.plot(time[:250], Yn1[:250])
+    # plt.grid(True); plt.xlabel('Czas [s]')
+
+    bs1 = wrmnk(Xn, Yn1, _lambda=1)
 
     # b0
-    plt.figure(figsize=(14, 8))
-    plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.06)
-    plt.plot(time[75 + 2:], [b[0] for b in bs1][75:])
-    plt.plot(time[75:], np.ones(len(time))[75:])
-    plt.grid(True); plt.ylabel(r'$b_{0}$'); plt.xlabel('Czas [s]')
+    # plt.figure(figsize=(14, 8))
+    # plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.06)
+    # plt.plot(time[75 + 2:], [b[0] for b in bs1][75:])
+    # plt.plot(time[75:], np.ones(len(time))[75:])
+    # plt.grid(True); plt.ylabel(r'$b_{0}$'); plt.xlabel('Czas [s]')
 
     # # b1
-    plt.figure(figsize=(14, 8))
-    plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.06)
-    plt.plot(time[75 + 2:], [b[1] for b in bs1][75:])
-    plt.plot(time[75:], np.ones(len(time))[75:])
-    plt.grid(True); plt.ylabel(r'$b_{1}$'); plt.xlabel('Czas [s]')
+    # plt.figure(figsize=(14, 8))
+    # plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.06)
+    # plt.plot(time[75 + 2:], [b[1] for b in bs1][75:])
+    # plt.plot(time[75:], np.ones(len(time))[75:])
+    # plt.grid(True); plt.ylabel(r'$b_{1}$'); plt.xlabel('Czas [s]')
     
-    # b2
+    # # b2
+    # plt.figure(figsize=(14, 8))
+    # plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.06)
+    # plt.plot(time[75 + 2:], [b[2] for b in bs1][75:])
+    # plt.plot(time[75:], np.ones(len(time))[75:])
+    # plt.grid(True); plt.ylabel(r'$b_{2}$'); plt.xlabel('Czas [s]')
+
+    b1_triangle = generateTriangleWave(time)
+
+    Yn2 = generateOutputDynamic(Xn, b1_triangle)
+    bs2 = wrmnk(Xn, Yn2, _lambda=1)
+
+    # plt.plot(time[2:], Yn2)
+
+    # b1
     plt.figure(figsize=(14, 8))
     plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.06)
-    plt.plot(time[75 + 2:], [b[2] for b in bs1][75:])
-    plt.plot(time[75:], np.ones(len(time))[75:])
-    plt.grid(True); plt.ylabel(r'$b_{2}$'); plt.xlabel('Czas [s]')
+    plt.plot(time[25:1000], [b[1] for b in bs2][25:1000])
+    plt.plot(time[25:1000], b1_triangle[25:1000])
+    plt.grid(True); plt.ylabel(r'$b_{1}$'); plt.xlabel('Czas [s]')
+
+    bs2 = wrmnk(Xn, Yn2, _lambda=0.98)
+
+    # b1 - lambda diffrent from 1
+    plt.figure(figsize=(14, 8))
+    plt.subplots_adjust(left=0.06, right=0.95, top=0.95, bottom=0.06)
+    plt.plot(time[25:1000], [b[1] for b in bs2][25:1000])
+    plt.plot(time[25:1000], b1_triangle[25:1000])
+    plt.grid(True); plt.ylabel(r'$b_{1}$'); plt.xlabel('Czas [s]')
+
+
 
     plt.show()
 
