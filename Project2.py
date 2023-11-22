@@ -50,6 +50,10 @@ def generateOutputDynamic(input, triangle_wave, noise):
     return output
 
 
+def mse(original, estimated):
+    return np.mean(np.square(np.subtract(original, estimated)))
+
+
 def wrmnk(Xn, Yn, _lambda):
     Pn = np.identity(3) * 10 ** 5
     b = np.zeros((3, 1))
@@ -71,13 +75,12 @@ def wrmnk(Xn, Yn, _lambda):
 
 def _wrmnk(b, P, x, y, _lambda):
     x = np.array([x]).T
-    # print(P.shape, x.shape)
 
-    numerator = np.dot(np.dot(np.dot(P, x), x.T), P)
-    denominator = _lambda + np.dot(np.dot(x.T, P), x)
+    numerator = np.matmul(np.matmul(np.matmul(P, x), x.T), P)
+    denominator = _lambda + np.matmul(np.matmul(x.T, P), x)
     P = (1 / _lambda) * (P - (numerator / denominator))
-    epsilon = y - np.dot(x.T, b)
-    b = b + np.dot(np.dot(P, x), epsilon)
+    epsilon = y - np.matmul(x.T, b)
+    b = b + np.matmul(np.matmul(P, x), epsilon)
 
     return b, P
 
@@ -87,18 +90,14 @@ def adaptiveInput(input, _lambda, wanted_value, noise, time):
     P = np.identity(3) * 10 ** 5
     b = np.zeros((3, 1))
     triangle_wave = generateTriangleWave(time)
-    # print(input)
 
     for i in range(len(time)):
         y = np.array([calculateOutput(input[0], input[1], input[2], [1, triangle_wave[i], 1], noise[i])])
-        # print(y)
-
         Y[i] = y
 
         b, P = _wrmnk(b, P, input, y, _lambda)
 
-        input_n = (wanted_value - b[0] * input[0] - b[1] * input[1]) / b[2]
-        # print(input_n)
+        input_n = (wanted_value - b[1] * input[0] - b[2] * input[1]) / b[0]
         input = np.concatenate([input_n, input[:2]])
 
     # print(Y)
@@ -106,14 +105,15 @@ def adaptiveInput(input, _lambda, wanted_value, noise, time):
 
 
 def main():
-    plot_range = 50
+    plot_range = 100
     numb_points = 1000
 
     time = np.linspace(0, plot_range, num=numb_points)
 
-    interferance_range = 0.1
+    interferance_range = 0.01
     noise = np.zeros((len(time), 1))
-    noise = np.random.uniform(-interferance_range / 2, interferance_range / 2, len(time))
+    rng = np.random.default_rng(50)
+    noise = rng.uniform(-interferance_range / 2, interferance_range / 2, len(time))
 
     Xn = generateInput(len(time))
     Yn1 = generateOutputStatic(Xn, [1, 1, 1], noise)
@@ -193,14 +193,44 @@ def main():
     # plt.plot(time[25:1000], b1_triangle[25:1000])
     # plt.grid(True); plt.ylabel(r'$b_{1}$'); plt.xlabel('Czas')
 
-    # for lmbd in np.arange(0.9, 0.91, 0.01):
-    #     y = adaptiveInput(Xn[0], lmbd, 1, noise, time)
-    y = adaptiveInput(Xn[0], 0.97, 1, noise, time)
+    value = 1.5
 
+    # [y values, mse, lambda]
+    y_arr = []
+    mse_lambda_arr = np.zeros((10, 2))
+    i = 0
+
+    for lmbd in np.arange(0.9, 1, 0.01):
+        y = adaptiveInput(Xn[0], lmbd, value, noise, time)
+        y_arr.append(y)
+        mse_lambda_arr[i] = [mse(value, y), lmbd]
+
+        i += 1
+
+    print(mse_lambda_arr)
+    print(min(mse_lambda_arr[:, 0]))
+    print(min(mse_lambda_arr[:, 1]))
+
+    # best lambda
     plt.figure(figsize=(14, 8))
     plt.subplots_adjust(left=0.06, right=0.95, top=0.98, bottom=0.06)
-    plt.plot(time[50:len(y)], y[50:])
-    plt.grid(True)
+    plt.plot(time[10:len(y)], y_arr[np.argmin(mse_lambda_arr[:, 0])][10:])
+    plt.plot(time[10:len(y)], np.full(len(y) - 10, value))
+    plt.grid(True); plt.ylim(value - 0.1, value + 0.1); plt.xlabel('Czas')
+
+    # lambda 0.98
+    plt.figure(figsize=(14, 8))
+    plt.subplots_adjust(left=0.06, right=0.95, top=0.98, bottom=0.06)
+    plt.plot(time[10:len(y)], y_arr[8][10:])
+    plt.plot(time[10:len(y)], np.full(len(y) - 10, value))
+    plt.grid(True); plt.ylim(value - 0.1, value + 0.1); plt.xlabel('Czas')
+
+    # lambda 0.95
+    plt.figure(figsize=(14, 8))
+    plt.subplots_adjust(left=0.06, right=0.95, top=0.98, bottom=0.06)
+    plt.plot(time[10:len(y)], y_arr[5][10:])
+    plt.plot(time[10:len(y)], np.full(len(y) - 10, value))
+    plt.grid(True); plt.ylim(value - 0.1, value + 0.1); plt.xlabel('Czas')
 
     plt.show()
 
