@@ -91,18 +91,22 @@ def parametersIdentification(output : np.ndarray) -> None:
 
 
 def plotCirclePoint(u1: float, u2 : float) -> None:
-    radius = 1
     point = (u1, u2)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8.5, 8.5))
 
-    circle = plt.Circle((0, 0), radius, edgecolor='b', facecolor='none')
+    circle = plt.Circle((0, 0), RADIUS, edgecolor='b', fill=False, label="Ograniczenia")
     ax.add_patch(circle)
 
-    ax.plot(*point, 'ro', label='Punkt')
-    ax.set_aspect('equal', adjustable='box')
+    ax.plot(*point, 'ro', label='Wartość optymalna')
+    ax.set_aspect('equal')
 
-    plt.grid(True); plt.show()
+    # draw the axis lines
+    ax.axvline(0, color="black", alpha=0.3)
+    ax.axhline(0, color="black", alpha=0.3)
+
+    plt.legend(); plt.xlabel("$u_{1}$"); plt.ylabel("$u_{2}$"); plt.grid(True)
+    plt.show()
 
 
 def costFunction(U : np.ndarray, wanted : np.ndarray) -> float:
@@ -155,8 +159,8 @@ def main() -> None:
     noise_range = 0.1
     wanted = np.array([4, 4])
 
-    output = dataSimulation(size, noise_range)
-    parametersIdentification(output)
+    # output = dataSimulation(size, noise_range)
+    # parametersIdentification(output)
     optimizeU(wanted)
 
 
