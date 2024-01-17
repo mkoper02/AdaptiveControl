@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+
 # A parameter for blocks
 A_arr = np.array([
     [0.5, 0], 
@@ -109,72 +110,85 @@ def plotCirclePoint(u1: float, u2 : float) -> None:
 
 
 def costFunction(U : np.ndarray, wanted : np.ndarray) -> float:
-    Y = calculateOutput(U, [0, 0]).T[0]
-    return (Y[0] - wanted[0]) ** 2 + (Y[1]- wanted[1]) ** 2
+    y1, y2 = calculateOutput(U, [0, 0]).T[0]
+    return (y1 - wanted[0]) ** 2 + (y2 - wanted[1]) ** 2
 
-def calculateOptimalU2(L, P, U1, wanted):
-    left_border = L
-    right_border = P
+
+def calculateOptimalU2(left_border : float, right_border : float, u1 : float, wanted : np.ndarray) -> float:
     epsilon = (abs(left_border) + abs(right_border)) / 100
+
     for i in range(30):
         u2 = (left_border + right_border) / 2
-        leftLimit = u2 - epsilon
-        rightLimit = u2 + epsilon
-        leftU = [U1, leftLimit]
-        rightU = [U1, rightLimit]
-        leftQ = costFunction(np.array([leftU]).T, wanted)
-        rightQ = costFunction(np.array([rightU]).T, wanted)
-        if np.sum(leftQ) > np.sum(rightQ):
-            left_border = leftLimit
-        else:
-            right_border = rightLimit
-        epsilon = epsilon / 2
-    u2 = (left_border + right_border) / 2
-    return u2
 
-def calculateOptimalU1(wanted):
+        left_limit = u2 - epsilon
+        right_limit = u2 + epsilon
+
+        left_cost = costFunction([u1, left_limit], wanted)
+        right_cost = costFunction([u1, right_limit], wanted)
+
+        if left_cost > right_cost:
+            left_border = left_limit
+        else:
+            right_border = right_limit
+
+        epsilon = epsilon / 2
+
+    return (left_border + right_border) / 2
+
+
+def calculateOptimalU1(wanted : np.ndarray) -> float:
     left_border = -RADIUS
     right_border = RADIUS
     epsilon = (abs(left_border) + abs(right_border)) / 100
+
     for i in range(30):
         u1 = (left_border + right_border) / 2
-        leftLimit = u1 - epsilon
-        rightLimit = u1 + epsilon
-        leftLimitU2 = np.sqrt(1 - leftLimit ** 2)
-        rightLimitU2 = np.sqrt(1 - rightLimit ** 2)
-        leftU = [leftLimit, calculateOptimalU2(-leftLimitU2, leftLimitU2, leftLimit, wanted)]
-        rightU = [rightLimit, calculateOptimalU2(-rightLimitU2, rightLimitU2, rightLimit, wanted)]
-        leftY = calculateOutput(np.array([leftU]).T, np.array([[0, 0]]).T)
-        rightY = calculateOutput(np.array([rightU]).T, np.array([[0, 0]]).T)   
-        leftQ = costFunction(np.array([leftU]).T, wanted)
-        rightQ = costFunction(np.array([rightU]).T, wanted)
-        if np.sum(leftQ) > np.sum(rightQ):
-            left_border = leftLimit
+
+        left_limit = u1 - epsilon
+        right_limit = u1 + epsilon
+
+        left_limit_U2 = np.sqrt(1 - left_limit ** 2)
+        right_limit_U2 = np.sqrt(1 - right_limit ** 2)
+
+        left_U = [left_limit, calculateOptimalU2(-left_limit_U2, left_limit_U2, left_limit, wanted)]
+        left_cost = costFunction(left_U, wanted)
+
+        right_U = [right_limit, calculateOptimalU2(-right_limit_U2, right_limit_U2, right_limit, wanted)]
+        right_cost = costFunction(right_U, wanted)
+
+        if left_cost > right_cost:
+            left_border = left_limit
         else:
-            right_border = rightLimit
+            right_border = right_limit
+
         epsilon = epsilon / 2
-    u1 = (left_border + right_border) / 2
-    return u1
+
+    return (left_border + right_border) / 2
+
 
 def optimizeU(wanted : np.ndarray) -> None:
     optimal_u1 = calculateOptimalU1(wanted)
-    left = np.sqrt(1 - pow(optimal_u1, 2))
+
+    left = np.sqrt(1 - optimal_u1 ** 2)
     right= -left
     optimal_u2 = calculateOptimalU2(right, left, optimal_u1, wanted)
-    optimal_U = [optimal_u1, optimal_u2]
-    cost = costFunction(optimal_U, wanted)
+
+    cost = costFunction([optimal_u1, optimal_u2], wanted)
+
     print(f"Optymalne u1: {optimal_u1}")
     print(f"Optymalne u2: {optimal_u2}")
     print(f"Minimalna wartość funkcji kosztu: {cost}")
+
     plotCirclePoint(optimal_u1, optimal_u2)
+
 
 def main() -> None:
     size = 1000
     noise_range = 0.1
     wanted = np.array([4, 4])
 
-    # output = dataSimulation(size, noise_range)
-    # parametersIdentification(output)
+    output = dataSimulation(size, noise_range)
+    parametersIdentification(output)
     optimizeU(wanted)
 
 if __name__ == '__main__':
