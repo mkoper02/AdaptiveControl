@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+import math
 # A parameter for blocks
 A_arr = np.array([
     [0.5, 0], 
@@ -113,45 +113,85 @@ def costFunction(U : np.ndarray, wanted : np.ndarray) -> float:
     y1, y2 = calculateOutput(U, [0, 0]).T[0]
     return (y1 - wanted[0]) ** 2 + (y2 - wanted[1]) ** 2
 
-
-def calculateOptimalU2(u1 : float, wanted : np.ndarray) -> np.ndarray:
-    Q_min = np.inf
-    right_limit = np.sqrt(RADIUS - u1 ** 2)
-    left_limit = -np.sqrt(RADIUS - u1 ** 2)
-    epsilon = right_limit
-
-    while True:
-        u2 = (left_limit + right_limit) / 2
-        epsilon = epsilon / 2
-
-        Q_left = costFunction([u1, u2 - epsilon], wanted)
-        Q_right = costFunction([u1, u2 + epsilon], wanted)
-
-        if Q_min > Q_left:
-            left_limit = u2
-            Q_min = Q_left
-
-        elif Q_min > Q_right:
-            right_limit = u2
-            Q_min = Q_right
-
+def calculateOptimalU1(wanted):
+    l = -1
+    p = 1
+    epsilon = (abs(l) + abs(p)) / 100
+    for i in range(10):
+        u1 = (l + p) / 2
+        leftLimit = u1 - epsilon
+        rightLimit = u1 + epsilon
+        leftLimitU2 = math.sqrt(1 - pow(leftLimit, 2))
+        rightLimitU2 = math.sqrt(1 - pow(rightLimit, 2))
+        leftU = [leftLimit, calculateOptimalU2(-leftLimitU2, leftLimitU2, leftLimit, wanted)]
+        rightU = [rightLimit, calculateOptimalU2(-rightLimitU2, rightLimitU2, rightLimit, wanted)]
+        leftY = np.linalg.inv(np.identity(2) - (A_arr @ H_arr)) @ B_arr @ leftU
+        rightY = np.linalg.inv(np.identity(2) - (A_arr @ H_arr)) @ B_arr @ rightU
+        leftQ = pow((leftY[0] - wanted[0]), 2) + pow((leftY[1] - wanted[1]), 2)
+        rightQ = pow((rightY[0] - wanted[0]), 2) + pow((rightY[1] - wanted[1]), 2)
+        if leftQ > rightQ:
+            l = leftLimit
         else:
-            return [u1, u2, Q_min]
-        
+            p = rightLimit
+        epsilon = epsilon / 2
+    u1 = (l + p) / 2
+    return u1
+
+def calculateOptimalU2(L, P, U1, wanted):
+    l = L
+    p = P
+    epsilon = (abs(l) + abs(p)) / 100
+    for i in range(10):
+        u2 = (l + p) / 2
+        leftLimit = u2 - epsilon
+        rightLimit = u2 + epsilon
+        leftU = [U1, leftLimit]
+        rightU = [U1, rightLimit]
+        leftY = np.linalg.inv(np.identity(2) - (A_arr @ H_arr)) @ B_arr @ leftU
+        rightY = np.linalg.inv(np.identity(2) - (A_arr @ H_arr)) @ B_arr @ rightU
+        leftQ = pow((leftY[0] - wanted[0]), 2) + pow((leftY[1] - wanted[1]), 2)
+        rightQ = pow((rightY[0] - wanted[0]), 2) + pow((rightY[1] - wanted[1]), 2)
+        if leftQ > rightQ:
+            l = leftLimit
+        else:
+            p = rightLimit
+        epsilon = epsilon / 2
+    u2 = (l + p) / 2
+    return u2
 
 def optimizeU(wanted : np.ndarray) -> None:
-    u_min = []
-    for u1 in np.arange(-RADIUS, RADIUS, 0.01): 
-        u_min.append(calculateOptimalU2(u1, wanted))
+    # u_min = []
+    # u1=0
+    # optimal_u1 = calculateOptimalU1(u1,wanted)
+    # optimal_u2 = calculateOptimalU2(optimal_u1,wanted)
+    # cost = costFunction([optimal_u1,optimal_u2], wanted)
+    # print(f"Optymalne u1: {optimal_u1}")
+    # print(f"Optymalne u2: {optimal_u2}")
+    # print(f"Minimalna wartość funkcji kosztu: {cost}")
 
-    u_min = np.array(u_min)
-    best_u1_index = np.argmin(u_min[:, 2])
+    optU1 = calculateOptimalU1(wanted)
+    l = math.sqrt(1 - pow(optU1, 2))
+    optU2 = calculateOptimalU2(-l, l, optU1, wanted)
 
-    print(f"Optymalne u1: {u_min[best_u1_index][0]}")
-    print(f"Optymalne u2: {u_min[best_u1_index][1]}")
-    print(f"Minimalna wartość funkcji kosztu: {u_min[best_u1_index][2]}")
+    print("Optymalna wartosc U1: ", optU1, "\nOptymalna wartosc U2: ", optU2)
+    optU = [optU1, optU2]
+    Y = np.linalg.inv(np.identity(2) - (A_arr @ H_arr)) @ B_arr @ optU
+    quality = pow((Y[0] - 4), 2) + pow((Y[1] - 4), 2)
+    print("Kryterium jakosci: ", quality)
 
-    plotCirclePoint(u_min[best_u1_index][0], u_min[best_u1_index][1])
+    plotCirclePoint(optU1, optU2)
+
+
+
+
+def main() -> None:
+    size = 1000
+    noise_range = 0.1
+    wanted = np.array([4, 4])
+
+    # output = dataSimulation(size, noise_range)
+    # parametersIdentification(output)
+    optimizeU(wanted)
 
 
 def main() -> None:
