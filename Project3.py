@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import math
 # A parameter for blocks
 A_arr = np.array([
     [0.5, 0], 
@@ -159,7 +158,7 @@ def calculateOptimalU1(wanted):
 
 def optimizeU(wanted : np.ndarray) -> None:
     optimal_u1 = calculateOptimalU1(wanted)
-    left = math.sqrt(1 - pow(optimal_u1, 2))
+    left = np.sqrt(1 - pow(optimal_u1, 2))
     right= -left
     optimal_u2 = calculateOptimalU2(right, left, optimal_u1, wanted)
     optimal_U = [optimal_u1, optimal_u2]
